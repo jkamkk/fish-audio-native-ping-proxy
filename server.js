@@ -5,7 +5,7 @@ import { decode, encode } from "@msgpack/msgpack";
 
 const PORT = Number(process.env.PORT || 10000);
 const FISH_URL = "wss://api.fish.audio/v1/tts/live";
-const KEEPALIVE_MS = 10000;
+const KEEPALIVE_MS = 0;
 const AUDIO_IDLE_MS = 1200;
 const SEGMENT_TIMEOUT_MS = 45000;
 const sessions = new Map();
@@ -133,12 +133,14 @@ class Session {
       sample_rate: config.sample_rate || 44100,
     }}));
     console.log(JSON.stringify({ event: "native_session_open", model: this.model }));
-    this.keepalive = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.ws.ping();
-        console.log(JSON.stringify({ event: "native_ping", model: this.model }));
-      }
-    }, KEEPALIVE_MS);
+    if (KEEPALIVE_MS > 0) {
+      this.keepalive = setInterval(() => {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.ping();
+          console.log(JSON.stringify({ event: "native_ping", model: this.model }));
+        }
+      }, KEEPALIVE_MS);
+    }
   }
 
   onMessage(data) {
