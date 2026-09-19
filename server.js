@@ -112,8 +112,12 @@ class Session {
       format: "pcm",
       sample_rate: config.sample_rate || 44100,
     }}));
+    console.log(JSON.stringify({ event: "native_session_open", model: this.model }));
     this.keepalive = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) this.ws.ping();
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.ping();
+        console.log(JSON.stringify({ event: "native_ping", model: this.model }));
+      }
     }, KEEPALIVE_MS);
   }
 
@@ -154,6 +158,7 @@ class Session {
       job.res.write(wav(job.parts, job.sampleRate));
       job.res.end();
     }
+    console.log(JSON.stringify({ event: "native_segment_finish", audioBytes: job.bytes }));
     job.resolve();
   }
 
@@ -175,6 +180,7 @@ class Session {
   async process({ body, req, res }) {
     this.lastUsed = Date.now();
     const config = copyConfig(body);
+    console.log(JSON.stringify({ event: "native_segment_start", textLength: body.text.length }));
     await this.ensure(config);
     await new Promise((resolve, reject) => {
       this.current = {
