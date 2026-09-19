@@ -52,6 +52,10 @@ function sessionName(auth) {
   return crypto.createHash("sha256").update(auth).digest("hex");
 }
 
+function shortHash(value) {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 12);
+}
+
 function wav(pieces, sampleRate = 44100, channels = 1, bits = 16) {
   const dataLength = pieces.reduce((sum, part) => sum + part.byteLength, 0);
   const header = Buffer.alloc(44);
@@ -93,6 +97,13 @@ class Session {
       prosody: config.prosody,
     }});
     if (this.ws?.readyState === WebSocket.OPEN && this.signature === signature) return;
+    if (this.ws?.readyState === WebSocket.OPEN && this.signature !== signature) {
+      console.log(JSON.stringify({
+        event: "native_session_signature_change",
+        old: shortHash(this.signature),
+        next: shortHash(signature),
+      }));
+    }
     this.close();
     this.signature = signature;
     this.ws = await new Promise((resolve, reject) => {
@@ -105,8 +116,18 @@ class Session {
     });
     this.ws.binaryType = "arraybuffer";
     this.ws.on("message", (data) => this.onMessage(data));
-    this.ws.on("error", (error) => this.fail(error));
-    this.ws.on("close", () => this.fail(new Error("Fish WebSocket closed")));
+    this.ws.on("error", (error) => {
+      console.log(JSON.stringify({ event: "native_ws_error", message: error.message }));
+      this.fail(error);
+    });
+    this.ws.on("close", (code, reason) => {
+      console.log(JSON.stringify({
+        event: "native_ws_close",
+        code,
+        reason: Buffer.from(reason || "").toString("utf8"),
+      }));
+      this.fail(new Error(`Fish WebSocket closed: ${code}`));
+    });
     this.ws.send(encode({ event: "start", request: {
       ...config,
       format: "pcm",
@@ -138,6 +159,7 @@ class Session {
   }
 
   fail(error) {
+    console.log(JSON.stringify({ event: "native_session_fail", message: error?.message || String(error) }));
     if (this.current) {
       clearTimeout(this.current.idle);
       clearTimeout(this.current.timeout);
