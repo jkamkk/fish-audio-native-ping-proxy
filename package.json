@@ -1,0 +1,12 @@
+{
+  "name": "fish-audio-native-ping-proxy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "^3.1.3",
+    "ws": "^8.18.3"
+  }
+}
