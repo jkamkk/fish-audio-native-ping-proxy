@@ -94,7 +94,6 @@ class Session {
       references: config.references,
       format: "pcm",
       sample_rate: config.sample_rate || 44100,
-      prosody: config.prosody,
     }});
     if (this.ws?.readyState === WebSocket.OPEN && this.signature === signature) return;
     if (this.ws?.readyState === WebSocket.OPEN && this.signature !== signature) {
